@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -32,18 +33,31 @@ export function Header() {
     return "User"
   })
 
+  const [isAdmin, setIsAdmin] = useState(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token")
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1]))
+          return payload.isAdmin || false
+        } catch {
+          return false
+        }
+      }
+    }
+    return false
+  })
+
   const handleLogout = () => {
     localStorage.removeItem("token")
     router.push("/login")
   }
 
   const handleSettings = () => {
-    // Navigate to settings page or open settings modal
     router.push("/settings")
   }
 
   const handleProfile = () => {
-    // Navigate to profile page
     router.push("/profile")
   }
 
@@ -51,11 +65,20 @@ export function Header() {
     return email.split("@")[0].substring(0, 2).toUpperCase()
   }
 
+  const getMainPageUrl = () => {
+    return isAdmin ? "/admin/dashboard" : "/user/dashboard"
+  }
+
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm fixed top-0 left-0 right-0 z-50">
       <div className="flex items-center justify-between h-16 px-6">
         <div className="flex items-center">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Logsheet Management System</h2>
+          <Link
+            href={getMainPageUrl()}
+            className="text-xl font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer"
+          >
+            Logsheet Management System
+          </Link>
         </div>
 
         <div className="flex items-center gap-4">
