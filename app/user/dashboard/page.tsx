@@ -6,7 +6,15 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { FileText, Plus, Download, Clock, CheckCircle, XCircle, LayoutDashboard, FileUp } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { FileText, Plus, Download, Clock, CheckCircle, XCircle, LayoutDashboard, FileUp, Eye } from "lucide-react"
 import Link from "next/link"
 
 interface Logsheet {
@@ -15,6 +23,34 @@ interface Logsheet {
     assetCode: string
     operatorName: string
     date: string
+    assetDescription: string
+    workingDetails: {
+      commenced: {
+        time: string
+        hmrOrKmrReading: string
+      }
+      completed: {
+        time: string
+        hmrOrKmrReading: string
+      }
+    }
+    productionDetails: {
+      activityCode: string
+      quantityProduced: number
+      workDone: string
+    }
+    totals: {
+      workingHours: number
+      idleHours: number
+      breakdownHours: number
+      productionQty: number
+      hmrOrKmrRun: string
+      fuelInLiters: number
+    }
+    userInfo: {
+      userName: string
+      userSignature: string
+    }
   }
   status: "Pending" | "Accepted" | "Rejected"
   rejectionReason?: string
@@ -29,6 +65,7 @@ export default function UserDashboard() {
   const [logsheets, setLogsheets] = useState<Logsheet[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [selectedLogsheet, setSelectedLogsheet] = useState<Logsheet | null>(null)
 
   useEffect(() => {
     fetchLogsheets()
@@ -235,6 +272,7 @@ export default function UserDashboard() {
                     <TableHead>Submitted</TableHead>
                     <TableHead>Reviewed By</TableHead>
                     <TableHead>Rejection Reason</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -261,6 +299,268 @@ export default function UserDashboard() {
                         {logsheet.rejectionReason && (
                           <span className="text-red-600 text-sm">{logsheet.rejectionReason}</span>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm" onClick={() => setSelectedLogsheet(logsheet)}>
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+                            <DialogHeader>
+                              <DialogTitle className="text-xl font-bold">Your Logsheet Details</DialogTitle>
+                              <DialogDescription>Review your submitted logsheet information</DialogDescription>
+                            </DialogHeader>
+                            {selectedLogsheet && (
+                              <div className="overflow-y-auto max-h-[70vh] pr-4">
+                                {/* Header Information */}
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-6">
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div>
+                                      <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                        Asset Code
+                                      </h4>
+                                      <p className="text-lg font-bold">{selectedLogsheet.data.assetCode}</p>
+                                    </div>
+                                    <div>
+                                      <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                                        Operator
+                                      </h4>
+                                      <p className="text-lg font-bold">{selectedLogsheet.data.operatorName}</p>
+                                    </div>
+                                    <div>
+                                      <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300">Date</h4>
+                                      <p className="text-lg font-bold">
+                                        {new Date(selectedLogsheet.data.date).toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300">Status</h4>
+                                      <Badge
+                                        className={`${getStatusColor(selectedLogsheet.status)} flex items-center gap-1 w-fit`}
+                                      >
+                                        {getStatusIcon(selectedLogsheet.status)}
+                                        {selectedLogsheet.status}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Asset Description */}
+                                <div className="mb-6">
+                                  <h4 className="text-lg font-semibold mb-2 flex items-center">
+                                    <div className="w-2 h-6 bg-blue-600 rounded mr-3"></div>
+                                    Asset Description
+                                  </h4>
+                                  <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                                    <p className="text-gray-700 dark:text-gray-300">
+                                      {selectedLogsheet.data.assetDescription || "No description provided"}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {/* Working Details */}
+                                <div className="mb-6">
+                                  <h4 className="text-lg font-semibold mb-3 flex items-center">
+                                    <div className="w-2 h-6 bg-green-600 rounded mr-3"></div>
+                                    Working Details
+                                  </h4>
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                                      <h5 className="font-semibold text-green-700 dark:text-green-300 mb-2">
+                                        Commenced
+                                      </h5>
+                                      <div className="space-y-1">
+                                        <p>
+                                          <span className="font-medium">Time:</span>{" "}
+                                          {selectedLogsheet.data.workingDetails.commenced.time}
+                                        </p>
+                                        <p>
+                                          <span className="font-medium">HMR/KMR Reading:</span>{" "}
+                                          {selectedLogsheet.data.workingDetails.commenced.hmrOrKmrReading}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg">
+                                      <h5 className="font-semibold text-red-700 dark:text-red-300 mb-2">Completed</h5>
+                                      <div className="space-y-1">
+                                        <p>
+                                          <span className="font-medium">Time:</span>{" "}
+                                          {selectedLogsheet.data.workingDetails.completed.time}
+                                        </p>
+                                        <p>
+                                          <span className="font-medium">HMR/KMR Reading:</span>{" "}
+                                          {selectedLogsheet.data.workingDetails.completed.hmrOrKmrReading}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Production Details */}
+                                <div className="mb-6">
+                                  <h4 className="text-lg font-semibold mb-3 flex items-center">
+                                    <div className="w-2 h-6 bg-purple-600 rounded mr-3"></div>
+                                    Production Details
+                                  </h4>
+                                  <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                      <div>
+                                        <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                                          Activity Code
+                                        </p>
+                                        <p className="text-lg font-bold">
+                                          {selectedLogsheet.data.productionDetails.activityCode}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                                          Quantity Produced
+                                        </p>
+                                        <p className="text-lg font-bold">
+                                          {selectedLogsheet.data.productionDetails.quantityProduced}
+                                        </p>
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                                          Work Done
+                                        </p>
+                                        <p className="text-sm">{selectedLogsheet.data.productionDetails.workDone}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Totals */}
+                                <div className="mb-6">
+                                  <h4 className="text-lg font-semibold mb-3 flex items-center">
+                                    <div className="w-2 h-6 bg-orange-600 rounded mr-3"></div>
+                                    Summary Totals
+                                  </h4>
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg text-center">
+                                      <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                                        Working Hours
+                                      </p>
+                                      <p className="text-2xl font-bold text-orange-600">
+                                        {selectedLogsheet.data.totals.workingHours}
+                                      </p>
+                                    </div>
+                                    <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg text-center">
+                                      <p className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
+                                        Idle Hours
+                                      </p>
+                                      <p className="text-2xl font-bold text-yellow-600">
+                                        {selectedLogsheet.data.totals.idleHours}
+                                      </p>
+                                    </div>
+                                    <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-center">
+                                      <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                                        Breakdown Hours
+                                      </p>
+                                      <p className="text-2xl font-bold text-red-600">
+                                        {selectedLogsheet.data.totals.breakdownHours}
+                                      </p>
+                                    </div>
+                                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg text-center">
+                                      <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                                        Production Qty
+                                      </p>
+                                      <p className="text-2xl font-bold text-green-600">
+                                        {selectedLogsheet.data.totals.productionQty}
+                                      </p>
+                                    </div>
+                                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg text-center">
+                                      <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                                        HMR/KMR Run
+                                      </p>
+                                      <p className="text-2xl font-bold text-blue-600">
+                                        {selectedLogsheet.data.totals.hmrOrKmrRun}
+                                      </p>
+                                    </div>
+                                    <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg text-center">
+                                      <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+                                        Fuel (Liters)
+                                      </p>
+                                      <p className="text-2xl font-bold text-indigo-600">
+                                        {selectedLogsheet.data.totals.fuelInLiters}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* User Information */}
+                                <div className="mb-6">
+                                  <h4 className="text-lg font-semibold mb-3 flex items-center">
+                                    <div className="w-2 h-6 bg-gray-600 rounded mr-3"></div>
+                                    User Information
+                                  </h4>
+                                  <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Name</p>
+                                        <p className="text-lg font-bold">{selectedLogsheet.data.userInfo.userName}</p>
+                                      </div>
+                                      <div>
+                                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                          Signature
+                                        </p>
+                                        <p className="text-sm font-mono bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">
+                                          {selectedLogsheet.data.userInfo.userSignature}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Review Information */}
+                                {selectedLogsheet.reviewedBy && (
+                                  <div className="mb-6">
+                                    <h4 className="text-lg font-semibold mb-3 flex items-center">
+                                      <div className="w-2 h-6 bg-indigo-600 rounded mr-3"></div>
+                                      Review Information
+                                    </h4>
+                                    <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-lg">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                          <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+                                            Reviewed By
+                                          </p>
+                                          <p className="text-lg font-bold">{selectedLogsheet.reviewedBy.email}</p>
+                                        </div>
+                                        <div>
+                                          <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
+                                            Status
+                                          </p>
+                                          <Badge
+                                            className={`${getStatusColor(selectedLogsheet.status)} flex items-center gap-1 w-fit mt-1`}
+                                          >
+                                            {getStatusIcon(selectedLogsheet.status)}
+                                            {selectedLogsheet.status}
+                                          </Badge>
+                                        </div>
+                                      </div>
+                                      {selectedLogsheet.rejectionReason && (
+                                        <div className="mt-4">
+                                          <p className="text-sm font-medium text-red-700 dark:text-red-300 mb-2">
+                                            Rejection Reason
+                                          </p>
+                                          <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded border-l-4 border-red-500">
+                                            <p className="text-red-800 dark:text-red-200">
+                                              {selectedLogsheet.rejectionReason}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </DialogContent>
+                        </Dialog>
                       </TableCell>
                     </TableRow>
                   ))}

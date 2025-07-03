@@ -12,7 +12,7 @@ import { ArrowLeft, Save } from "lucide-react"
 import Link from "next/link"
 
 export default function SettingsPage() {
-  const [oldPassword, setOldPassword] = useState("")
+  const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -45,8 +45,8 @@ export default function SettingsPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          oldPassword,
-          newPassword,
+          oldPassword: currentPassword,
+          newPassword: newPassword,
         }),
       })
 
@@ -54,94 +54,92 @@ export default function SettingsPage() {
 
       if (response.ok) {
         setMessage("Password changed successfully!")
-        setOldPassword("")
+        setCurrentPassword("")
         setNewPassword("")
         setConfirmPassword("")
       } else {
         setError(data.error || "Failed to change password")
       }
     } catch (err) {
-      setError("Network error. Please try again.")
+      setError("Network error occurred")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="px-6 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="mb-6">
-            <Link href="/user/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-            <p className="text-gray-600 dark:text-gray-400">Manage your account settings and preferences</p>
-          </div>
-
-          {message && (
-            <Alert className="mb-6 border-green-200 bg-green-50 text-green-800">
-              <AlertDescription>{message}</AlertDescription>
-            </Alert>
-          )}
-
-          {error && (
-            <Alert variant="destructive" className="mb-6">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>Update your password to keep your account secure</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handlePasswordChange} className="space-y-4">
-                <div>
-                  <Label htmlFor="oldPassword">Current Password</Label>
-                  <Input
-                    id="oldPassword"
-                    type="password"
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    required
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="newPassword">New Password</Label>
-                  <Input
-                    id="newPassword"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="mt-1"
-                  />
-                </div>
-                <Button type="submit" disabled={loading} className="w-full">
-                  <Save className="h-4 w-4 mr-2" />
-                  {loading ? "Changing Password..." : "Change Password"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-6">
+          <Link href="/user/dashboard" className="flex items-center text-blue-600 hover:text-blue-700 mb-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage your account settings</p>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Change Password</CardTitle>
+            <CardDescription>Update your account password for security</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {message && (
+                <Alert>
+                  <AlertDescription className="text-green-600">{message}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Current Password</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <Button type="submit" disabled={loading} className="w-full">
+                <Save className="h-4 w-4 mr-2" />
+                {loading ? "Changing Password..." : "Change Password"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
