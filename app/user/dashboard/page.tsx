@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { FileText, Plus, Download, Clock, CheckCircle, XCircle } from "lucide-react"
+import { FileText, Plus, Download, Clock, CheckCircle, XCircle, LayoutDashboard, FileUp } from "lucide-react"
+import Link from "next/link"
 
 interface Logsheet {
   _id: string
@@ -18,6 +19,10 @@ interface Logsheet {
   status: "Pending" | "Accepted" | "Rejected"
   rejectionReason?: string
   submittedAt: string
+  reviewedBy?: {
+    _id: string
+    email: string
+  }
 }
 
 export default function UserDashboard() {
@@ -115,127 +120,156 @@ export default function UserDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Navigation Bar */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 mb-6">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-8">
+              <Link href="/user/dashboard" className="flex items-center space-x-2 text-blue-600 hover:text-blue-700">
+                <LayoutDashboard className="h-5 w-5" />
+                <span className="font-medium">Dashboard</span>
+              </Link>
+              <Link
+                href="/user/submit"
+                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              >
+                <FileUp className="h-5 w-5" />
+                <span className="font-medium">Submit Logsheet</span>
+              </Link>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={exportCSV} variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+              <Button asChild>
+                <Link href="/user/submit">
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Logsheet
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-6 space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
           <p className="text-gray-600 dark:text-gray-400">Manage your logsheet submissions</p>
         </div>
-        <div className="flex gap-3">
-          <Button onClick={exportCSV} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-          <Button asChild>
-            <a href="/user/submit">
-              <Plus className="h-4 w-4 mr-2" />
-              New Logsheet
-            </a>
-          </Button>
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Logsheets</CardTitle>
+              <FileText className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Pending</CardTitle>
+              <Clock className="h-4 w-4 text-yellow-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Accepted</CardTitle>
+              <CheckCircle className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.accepted}</div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+              <XCircle className="h-4 w-4 text-red-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
+            </CardContent>
+          </Card>
         </div>
-      </div>
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {/* Logsheets Table */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Logsheets</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle>Your Logsheets</CardTitle>
+            <CardDescription>View all your submitted logsheets and their status</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Accepted</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.accepted}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Rejected</CardTitle>
-            <XCircle className="h-4 w-4 text-red-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.rejected}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Logsheets Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Logsheets</CardTitle>
-          <CardDescription>View all your submitted logsheets and their status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {logsheets.length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">No logsheets submitted yet</p>
-              <Button asChild className="mt-4">
-                <a href="/user/submit">Submit Your First Logsheet</a>
-              </Button>
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Asset Code</TableHead>
-                  <TableHead>Operator</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead>Rejection Reason</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logsheets.map((logsheet) => (
-                  <TableRow key={logsheet._id}>
-                    <TableCell className="font-medium">{logsheet.data.assetCode}</TableCell>
-                    <TableCell>{logsheet.data.operatorName}</TableCell>
-                    <TableCell>{new Date(logsheet.data.date).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <Badge className={`${getStatusColor(logsheet.status)} flex items-center gap-1 w-fit`}>
-                        {getStatusIcon(logsheet.status)}
-                        {logsheet.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{new Date(logsheet.submittedAt).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      {logsheet.rejectionReason && (
-                        <span className="text-red-600 text-sm">{logsheet.rejectionReason}</span>
-                      )}
-                    </TableCell>
+            {logsheets.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-400">No logsheets submitted yet</p>
+                <Button asChild className="mt-4">
+                  <Link href="/user/submit">Submit Your First Logsheet</Link>
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Asset Code</TableHead>
+                    <TableHead>Operator</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Submitted</TableHead>
+                    <TableHead>Reviewed By</TableHead>
+                    <TableHead>Rejection Reason</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {logsheets.map((logsheet) => (
+                    <TableRow key={logsheet._id}>
+                      <TableCell className="font-medium">{logsheet.data.assetCode}</TableCell>
+                      <TableCell>{logsheet.data.operatorName}</TableCell>
+                      <TableCell>{new Date(logsheet.data.date).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <Badge className={`${getStatusColor(logsheet.status)} flex items-center gap-1 w-fit`}>
+                          {getStatusIcon(logsheet.status)}
+                          {logsheet.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(logsheet.submittedAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {logsheet.reviewedBy ? (
+                          <span className="text-sm text-gray-600 dark:text-gray-400">{logsheet.reviewedBy.email}</span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {logsheet.rejectionReason && (
+                          <span className="text-red-600 text-sm">{logsheet.rejectionReason}</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

@@ -37,6 +37,16 @@ export function Header() {
     router.push("/login")
   }
 
+  const handleSettings = () => {
+    // Navigate to settings page or open settings modal
+    router.push("/settings")
+  }
+
+  const handleProfile = () => {
+    // Navigate to profile page
+    router.push("/profile")
+  }
+
   const getInitials = (email: string) => {
     return email.split("@")[0].substring(0, 2).toUpperCase()
   }
@@ -45,7 +55,7 @@ export function Header() {
     <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
       <div className="flex items-center justify-between h-16 px-6">
         <div className="flex items-center">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white lg:ml-64">Logsheet Management System</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Logsheet Management System</h2>
         </div>
 
         <div className="flex items-center gap-4">
@@ -67,11 +77,11 @@ export function Header() {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleProfile}>
                 <User className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSettings}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
