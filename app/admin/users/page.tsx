@@ -72,15 +72,15 @@ export default function ManageUsers() {
           <p className="text-gray-600 dark:text-gray-400">Add new users and administrators to the system</p>
         </div>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
         {success && (
           <Alert className="border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900 dark:text-green-200">
             <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
@@ -88,7 +88,7 @@ export default function ManageUsers() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
+                <Users className="h-5 w-5" />
                 Add New Users
               </CardTitle>
               <CardDescription>
@@ -100,7 +100,7 @@ export default function ManageUsers() {
               {users.map((user, index) => (
                 <div key={index} className="space-y-4 p-4 border rounded-lg">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium">User {index + 1}</h3>
+                    <h3 className="font-medium">User {index + 1}</h3>
                     {users.length > 1 && (
                       <Button type="button" variant="outline" size="sm" onClick={() => removeUser(index)}>
                         Remove
@@ -111,13 +111,13 @@ export default function ManageUsers() {
                   <div className="space-y-2">
                     <Label htmlFor={`email-${index}`}>Gmail Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                       <Input
                         id={`email-${index}`}
                         type="email"
-                        placeholder="user@gmail.com"
                         value={user.email}
                         onChange={(e) => updateUser(index, "email", e.target.value)}
+                        placeholder="user@gmail.com"
                         className="pl-10"
                         required
                       />
@@ -140,11 +140,12 @@ export default function ManageUsers() {
                   <UserPlus className="h-4 w-4 mr-2" />
                   Add Another User
                 </Button>
+
                 <Button type="submit" disabled={loading}>
                   {loading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
-                      Creating Users...
+                      Creating...
                     </>
                   ) : (
                     <>
@@ -160,10 +161,7 @@ export default function ManageUsers() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Important Notes
-            </CardTitle>
+            <CardTitle>Important Notes</CardTitle>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -54,6 +54,75 @@ export default function SubmitLogsheet() {
       userSignature: "",
     },
   })
+
+  // Auto-calculate totals when working details change
+  useEffect(() => {
+    calculateTotals()
+  }, [
+    formData.workingDetails.commenced.time,
+    formData.workingDetails.completed.time,
+    formData.workingDetails.commenced.hmrOrKmrReading,
+    formData.workingDetails.completed.hmrOrKmrReading,
+    formData.productionDetails.workDone,
+    formData.productionDetails.quantityProduced,
+  ])
+
+  const calculateTotals = () => {
+    const { commenced, completed } = formData.workingDetails
+    const { workDone, quantityProduced } = formData.productionDetails
+
+    const calculatedTotals = { ...formData.totals }
+
+    // Calculate working hours if both times are provided
+    if (commenced.time && completed.time) {
+      const startTime = new Date(`2000-01-01T${commenced.time}:00`)
+      const endTime = new Date(`2000-01-01T${completed.time}:00`)
+
+      // Handle overnight shifts
+      if (endTime < startTime) {
+        endTime.setDate(endTime.getDate() + 1)
+      }
+
+      const diffMs = endTime.getTime() - startTime.getTime()
+      const totalHours = diffMs / (1000 * 60 * 60) // Convert to hours
+
+      // Distribute hours based on work status
+      if (workDone === "working") {
+        calculatedTotals.workingHours = Math.round(totalHours * 10) / 10 // Round to 1 decimal
+        calculatedTotals.idleHours = 0
+        calculatedTotals.breakdownHours = 0
+      } else if (workDone === "idle") {
+        calculatedTotals.workingHours = 0
+        calculatedTotals.idleHours = Math.round(totalHours * 10) / 10
+        calculatedTotals.breakdownHours = 0
+      } else if (workDone === "breakdown") {
+        calculatedTotals.workingHours = 0
+        calculatedTotals.idleHours = 0
+        calculatedTotals.breakdownHours = Math.round(totalHours * 10) / 10
+      }
+    }
+
+    // Calculate HMR/KMR run if both readings are provided
+    if (commenced.hmrOrKmrReading && completed.hmrOrKmrReading) {
+      const startReading = Number.parseFloat(commenced.hmrOrKmrReading)
+      const endReading = Number.parseFloat(completed.hmrOrKmrReading)
+
+      if (!isNaN(startReading) && !isNaN(endReading) && endReading >= startReading) {
+        calculatedTotals.hmrOrKmrRun = (endReading - startReading).toString()
+      }
+    }
+
+    // Set production quantity from production details
+    if (quantityProduced > 0) {
+      calculatedTotals.productionQty = quantityProduced
+    }
+
+    // Update the form data with calculated totals
+    setFormData((prev) => ({
+      ...prev,
+      totals: calculatedTotals,
+    }))
+  }
 
   const handleInputChange = (section: string, field: string, value: any, subField?: string) => {
     setFormData((prev) => {
@@ -361,7 +430,9 @@ export default function SubmitLogsheet() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Totals</CardTitle>
-                    <CardDescription>Enter the total hours and quantities</CardDescription>
+                    <CardDescription>
+                      These values are automatically calculated based on your working details
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -374,7 +445,9 @@ export default function SubmitLogsheet() {
                           value={formData.totals.workingHours}
                           onChange={(e) => handleInputChange("totals", "workingHours", Number(e.target.value))}
                           placeholder="0.0"
+                          className="bg-gray-50 dark:bg-gray-800"
                         />
+                        <p className="text-xs text-gray-500">Auto-calculated from time & work status</p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="idleHours">Idle Hours</Label>
@@ -385,7 +458,9 @@ export default function SubmitLogsheet() {
                           value={formData.totals.idleHours}
                           onChange={(e) => handleInputChange("totals", "idleHours", Number(e.target.value))}
                           placeholder="0.0"
+                          className="bg-gray-50 dark:bg-gray-800"
                         />
+                        <p className="text-xs text-gray-500">Auto-calculated from time & work status</p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="breakdownHours">Breakdown Hours</Label>
@@ -396,7 +471,9 @@ export default function SubmitLogsheet() {
                           value={formData.totals.breakdownHours}
                           onChange={(e) => handleInputChange("totals", "breakdownHours", Number(e.target.value))}
                           placeholder="0.0"
+                          className="bg-gray-50 dark:bg-gray-800"
                         />
+                        <p className="text-xs text-gray-500">Auto-calculated from time & work status</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -408,7 +485,9 @@ export default function SubmitLogsheet() {
                           value={formData.totals.productionQty}
                           onChange={(e) => handleInputChange("totals", "productionQty", Number(e.target.value))}
                           placeholder="0"
+                          className="bg-gray-50 dark:bg-gray-800"
                         />
+                        <p className="text-xs text-gray-500">Auto-filled from production details</p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="hmrOrKmrRun">HMR/KMR Run</Label>
@@ -417,7 +496,9 @@ export default function SubmitLogsheet() {
                           value={formData.totals.hmrOrKmrRun}
                           onChange={(e) => handleInputChange("totals", "hmrOrKmrRun", e.target.value)}
                           placeholder="Enter run value"
+                          className="bg-gray-50 dark:bg-gray-800"
                         />
+                        <p className="text-xs text-gray-500">Auto-calculated from readings</p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="fuelInLiters">Fuel in Liters</Label>
@@ -429,6 +510,7 @@ export default function SubmitLogsheet() {
                           onChange={(e) => handleInputChange("totals", "fuelInLiters", Number(e.target.value))}
                           placeholder="0.0"
                         />
+                        <p className="text-xs text-gray-500">Manual entry required</p>
                       </div>
                     </div>
                   </CardContent>
