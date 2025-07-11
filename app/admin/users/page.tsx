@@ -9,26 +9,27 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Trash2, UserPlus, Mail, Send } from "lucide-react"
+import { Trash2, UserPlus, Mail } from "lucide-react"
 
 export default function ManageUsers() {
-  const [users, setUsers] = useState([{ id: 1, email: "", isAdmin: false }])
+  const [users, setUsers] = useState([{ email: "", isAdmin: false }])
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState("")
   const [error, setError] = useState("")
 
   const addUser = () => {
-    setUsers([...users, { id: Date.now(), email: "", isAdmin: false }])
+    setUsers([...users, { email: "", isAdmin: false }])
   }
 
-  const removeUser = (id: number) => {
+  const removeUser = (index: number) => {
     if (users.length > 1) {
-      setUsers(users.filter((user) => user.id !== id))
+      setUsers(users.filter((_, i) => i !== index))
     }
   }
 
-  const updateUser = (id: number, field: string, value: any) => {
-    setUsers(users.map((user) => (user.id === id ? { ...user, [field]: value } : user)))
+  const updateUser = (index: number, field: string, value: string | boolean) => {
+    const updatedUsers = users.map((user, i) => (i === index ? { ...user, [field]: value } : user))
+    setUsers(updatedUsers)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,14 +38,15 @@ export default function ManageUsers() {
     setError("")
     setSuccess("")
 
+    // Validate emails
+    const validUsers = users.filter((user) => user.email.trim() !== "")
+    if (validUsers.length === 0) {
+      setError("Please add at least one user with a valid email address")
+      setLoading(false)
+      return
+    }
+
     try {
-      const validUsers = users.filter((user) => user.email.trim() !== "")
-
-      if (validUsers.length === 0) {
-        setError("Please add at least one valid email address")
-        return
-      }
-
       const token = localStorage.getItem("token")
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/users/create`, {
         method: "POST",
@@ -59,7 +61,7 @@ export default function ManageUsers() {
 
       if (response.ok) {
         setSuccess("Users created successfully! Login credentials have been sent to their email addresses.")
-        setUsers([{ id: 1, email: "", isAdmin: false }])
+        setUsers([{ email: "", isAdmin: false }])
       } else {
         setError(data.error || "Failed to create users")
       }
@@ -78,15 +80,15 @@ export default function ManageUsers() {
           <p className="text-gray-600 dark:text-gray-400">Add new users and administrators to the system</p>
         </div>
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
         {success && (
           <Alert className="border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900 dark:text-green-200">
             <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
@@ -104,26 +106,32 @@ export default function ManageUsers() {
             </CardHeader>
             <CardContent className="space-y-4">
               {users.map((user, index) => (
-                <div key={user.id} className="space-y-4 p-4 border rounded-lg">
+                <div key={index} className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-medium">User {index + 1}</h3>
+                    <h3 className="text-lg font-medium">User {index + 1}</h3>
                     {users.length > 1 && (
-                      <Button type="button" variant="outline" size="sm" onClick={() => removeUser(user.id)}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeUser(index)}
+                        className="text-red-600 hover:text-red-700"
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`email-${user.id}`}>Gmail Address</Label>
+                    <Label htmlFor={`email-${index}`}>Gmail Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
-                        id={`email-${user.id}`}
+                        id={`email-${index}`}
                         type="email"
-                        value={user.email}
-                        onChange={(e) => updateUser(user.id, "email", e.target.value)}
                         placeholder="user@gmail.com"
+                        value={user.email}
+                        onChange={(e) => updateUser(index, "email", e.target.value)}
                         className="pl-10"
                         required
                       />
@@ -132,21 +140,23 @@ export default function ManageUsers() {
 
                   <div className="flex items-center space-x-2">
                     <Checkbox
-                      id={`admin-${user.id}`}
+                      id={`admin-${index}`}
                       checked={user.isAdmin}
-                      onCheckedChange={(checked) => updateUser(user.id, "isAdmin", checked)}
+                      onCheckedChange={(checked) => updateUser(index, "isAdmin", checked as boolean)}
                     />
-                    <Label htmlFor={`admin-${user.id}`}>Make this user an administrator</Label>
+                    <Label htmlFor={`admin-${index}`} className="text-sm font-medium">
+                      Make this user an administrator
+                    </Label>
                   </div>
                 </div>
               ))}
 
-              <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={addUser}>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Another User
-                </Button>
+              <Button type="button" variant="outline" onClick={addUser} className="w-full bg-transparent">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Another User
+              </Button>
 
+              <div className="flex justify-end gap-4 pt-4">
                 <Button type="submit" disabled={loading}>
                   {loading ? (
                     <>
@@ -155,7 +165,7 @@ export default function ManageUsers() {
                     </>
                   ) : (
                     <>
-                      <Send className="h-4 w-4 mr-2" />
+                      <Mail className="h-4 w-4 mr-2" />
                       Create Users & Send Emails
                     </>
                   )}
@@ -169,13 +179,13 @@ export default function ManageUsers() {
           <CardHeader>
             <CardTitle>Important Notes</CardTitle>
           </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-              <li>• Only Gmail addresses are supported for user registration</li>
-              <li>• Passwords are automatically generated and sent to the user's email</li>
-              <li>• Users can change their password after first login</li>
-              <li>• Administrators have full access to review and manage logsheets</li>
-              <li>• Regular users can only submit and view their own logsheets</li>
+          <CardContent className="space-y-2">
+            <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400">
+              <li>Only Gmail addresses are supported for user registration</li>
+              <li>Passwords are automatically generated and sent to the user's email</li>
+              <li>Users can change their password after first login</li>
+              <li>Administrators have full access to review and manage logsheets</li>
+              <li>Regular users can only submit and view their own logsheets</li>
             </ul>
           </CardContent>
         </Card>

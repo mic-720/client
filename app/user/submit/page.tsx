@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { TimePicker } from "@/components/time-picker"
 import { Send, AlertTriangle } from "lucide-react"
 
 export default function SubmitLogsheet() {
@@ -54,32 +55,6 @@ export default function SubmitLogsheet() {
       userSignature: "",
     },
   })
-
-  // Convert 24-hour time to 12-hour format with AM/PM
-  const convertTo12Hour = (time24: string) => {
-    if (!time24) return ""
-    const [hours, minutes] = time24.split(":")
-    const hour = Number.parseInt(hours, 10)
-    const ampm = hour >= 12 ? "PM" : "AM"
-    const hour12 = hour % 12 || 12
-    return `${hour12}:${minutes} ${ampm}`
-  }
-
-  // Convert 12-hour time to 24-hour format
-  const convertTo24Hour = (time12: string) => {
-    if (!time12) return ""
-    const [time, ampm] = time12.split(" ")
-    const [hours, minutes] = time.split(":")
-    let hour = Number.parseInt(hours, 10)
-
-    if (ampm === "PM" && hour !== 12) {
-      hour += 12
-    } else if (ampm === "AM" && hour === 12) {
-      hour = 0
-    }
-
-    return `${hour.toString().padStart(2, "0")}:${minutes}`
-  }
 
   // Auto-calculate totals when working details change
   useEffect(() => {
@@ -358,20 +333,11 @@ export default function SubmitLogsheet() {
                         <div className="space-y-3">
                           <div className="space-y-2">
                             <Label htmlFor="commencedTime">Time</Label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                id="commencedTime"
-                                type="time"
-                                value={formData.workingDetails.commenced.time}
-                                onChange={(e) =>
-                                  handleInputChange("workingDetails", "commenced", e.target.value, "time")
-                                }
-                                className="flex-1"
-                              />
-                              <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[60px]">
-                                {convertTo12Hour(formData.workingDetails.commenced.time)}
-                              </span>
-                            </div>
+                            <TimePicker
+                              value={formData.workingDetails.commenced.time}
+                              onChange={(value) => handleInputChange("workingDetails", "commenced", value, "time")}
+                              placeholder="Select start time"
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="commencedReading">HMR/KMR Reading</Label>
@@ -392,20 +358,11 @@ export default function SubmitLogsheet() {
                         <div className="space-y-3">
                           <div className="space-y-2">
                             <Label htmlFor="completedTime">Time</Label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                id="completedTime"
-                                type="time"
-                                value={formData.workingDetails.completed.time}
-                                onChange={(e) =>
-                                  handleInputChange("workingDetails", "completed", e.target.value, "time")
-                                }
-                                className="flex-1"
-                              />
-                              <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[60px]">
-                                {convertTo12Hour(formData.workingDetails.completed.time)}
-                              </span>
-                            </div>
+                            <TimePicker
+                              value={formData.workingDetails.completed.time}
+                              onChange={(value) => handleInputChange("workingDetails", "completed", value, "time")}
+                              placeholder="Select end time"
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="completedReading">HMR/KMR Reading</Label>
