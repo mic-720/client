@@ -55,6 +55,32 @@ export default function SubmitLogsheet() {
     },
   })
 
+  // Convert 24-hour time to 12-hour format with AM/PM
+  const convertTo12Hour = (time24: string) => {
+    if (!time24) return ""
+    const [hours, minutes] = time24.split(":")
+    const hour = Number.parseInt(hours, 10)
+    const ampm = hour >= 12 ? "PM" : "AM"
+    const hour12 = hour % 12 || 12
+    return `${hour12}:${minutes} ${ampm}`
+  }
+
+  // Convert 12-hour time to 24-hour format
+  const convertTo24Hour = (time12: string) => {
+    if (!time12) return ""
+    const [time, ampm] = time12.split(" ")
+    const [hours, minutes] = time.split(":")
+    let hour = Number.parseInt(hours, 10)
+
+    if (ampm === "PM" && hour !== 12) {
+      hour += 12
+    } else if (ampm === "AM" && hour === 12) {
+      hour = 0
+    }
+
+    return `${hour.toString().padStart(2, "0")}:${minutes}`
+  }
+
   // Auto-calculate totals when working details change
   useEffect(() => {
     calculateTotals()
@@ -244,29 +270,32 @@ export default function SubmitLogsheet() {
           </Alert>
         )}
 
-        {/* Small Date Field in Upper Left Corner */}
-        <div className="w-48">
-          <Label htmlFor="date" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Date
-          </Label>
-          <Input
-            id="date"
-            type="date"
-            value={formData.date}
-            onChange={(e) => handleDateChange(e.target.value)}
-            required
-            className={`mt-1 ${
-              dateError
-                ? "border-red-500 focus:border-red-500 focus:ring-red-500"
-                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-            }`}
-          />
-          {dateError && (
-            <div className="flex items-center gap-1 text-red-600 text-xs mt-1">
-              <AlertTriangle className="h-3 w-3" />
-              <span>{dateError}</span>
-            </div>
-          )}
+        <div className="flex justify-between items-start">
+          <div></div>
+          {/* Date Field in Upper Right Corner */}
+          <div className="w-48">
+            <Label htmlFor="date" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Date
+            </Label>
+            <Input
+              id="date"
+              type="date"
+              value={formData.date}
+              onChange={(e) => handleDateChange(e.target.value)}
+              required
+              className={`mt-1 ${
+                dateError
+                  ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              }`}
+            />
+            {dateError && (
+              <div className="flex items-center gap-1 text-red-600 text-xs mt-1">
+                <AlertTriangle className="h-3 w-3" />
+                <span>{dateError}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -329,12 +358,20 @@ export default function SubmitLogsheet() {
                         <div className="space-y-3">
                           <div className="space-y-2">
                             <Label htmlFor="commencedTime">Time</Label>
-                            <Input
-                              id="commencedTime"
-                              type="time"
-                              value={formData.workingDetails.commenced.time}
-                              onChange={(e) => handleInputChange("workingDetails", "commenced", e.target.value, "time")}
-                            />
+                            <div className="flex items-center gap-2">
+                              <Input
+                                id="commencedTime"
+                                type="time"
+                                value={formData.workingDetails.commenced.time}
+                                onChange={(e) =>
+                                  handleInputChange("workingDetails", "commenced", e.target.value, "time")
+                                }
+                                className="flex-1"
+                              />
+                              <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[60px]">
+                                {convertTo12Hour(formData.workingDetails.commenced.time)}
+                              </span>
+                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="commencedReading">HMR/KMR Reading</Label>
@@ -355,12 +392,20 @@ export default function SubmitLogsheet() {
                         <div className="space-y-3">
                           <div className="space-y-2">
                             <Label htmlFor="completedTime">Time</Label>
-                            <Input
-                              id="completedTime"
-                              type="time"
-                              value={formData.workingDetails.completed.time}
-                              onChange={(e) => handleInputChange("workingDetails", "completed", e.target.value, "time")}
-                            />
+                            <div className="flex items-center gap-2">
+                              <Input
+                                id="completedTime"
+                                type="time"
+                                value={formData.workingDetails.completed.time}
+                                onChange={(e) =>
+                                  handleInputChange("workingDetails", "completed", e.target.value, "time")
+                                }
+                                className="flex-1"
+                              />
+                              <span className="text-sm text-gray-500 dark:text-gray-400 min-w-[60px]">
+                                {convertTo12Hour(formData.workingDetails.completed.time)}
+                              </span>
+                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="completedReading">HMR/KMR Reading</Label>

@@ -16,13 +16,13 @@ import { User, Settings, LogOut, Home } from "lucide-react"
 
 export function Header() {
   const router = useRouter()
-  const [userRole, setUserRole] = useState<string>("")
-  const [userName, setUserName] = useState<string>("")
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string | null>(null)
 
   useEffect(() => {
     // Get user info from localStorage
-    const role = localStorage.getItem("userRole") || "user"
-    const name = localStorage.getItem("userName") || "User"
+    const role = localStorage.getItem("userRole")
+    const name = localStorage.getItem("userName")
     setUserRole(role)
     setUserName(name)
   }, [])
@@ -61,33 +61,33 @@ export function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
       <div className="flex items-center justify-between px-6 py-3">
-        <button
-          onClick={handleTitleClick}
-          className="text-xl font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
-        >
-          Logsheet Management System
-        </button>
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={handleTitleClick}
+            className="text-xl font-bold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-200"
+          >
+            Logsheet Management System
+          </button>
+        </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center space-x-4">
           <ThemeToggle />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder-user.jpg" alt={userName} />
-                  <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarImage src="/placeholder-user.jpg" alt={userName || "User"} />
+                  <AvatarFallback>{userName ? userName.charAt(0).toUpperCase() : "U"}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
-              <div className="flex items-center justify-start gap-2 p-2">
-                <div className="flex flex-col space-y-1 leading-none">
-                  <p className="font-medium">{userName}</p>
-                  <p className="w-[200px] truncate text-sm text-muted-foreground">
-                    {userRole === "admin" ? "Administrator" : "User"}
-                  </p>
-                </div>
+              <div className="flex flex-col space-y-1 p-2">
+                <p className="text-sm font-medium leading-none">{userName || "User"}</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {userRole === "admin" ? "Administrator" : "User"}
+                </p>
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleHome}>
