@@ -2,200 +2,491 @@
 
 import type React from "react"
 
-import { useState, type FormEvent } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { toast } from "@/hooks/use-toast"
-import { format } from "date-fns"
+import { Send, AlertTriangle } from "lucide-react"
 
-export default function SubmitLogsheetPage() {
+export default function SubmitLogsheet() {
   const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState("")
+  const [dateError, setDateError] = useState("")
 
-  /* ---------- DATE ---------- */
-  const today = new Date()
-  const [date, setDate] = useState<string>(format(today, "yyyy-MM-dd"))
-  const [dateError, setDateError] = useState<string | null>(null)
-
-  const validateDate = (value: string) => {
-    const picked = new Date(value)
-    // strip time
-    picked.setHours(0, 0, 0, 0)
-    const diffMs = today.setHours(0, 0, 0, 0) - picked.getTime()
-    const diffDays = diffMs / 86_400_000 // ms per day
-    if (diffDays < 0) return "Date cannot be in the future."
-    if (diffDays > 2) return "Date cannot be more than 2 days ago."
-    return null
-  }
-
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
-    setDate(val)
-    setDateError(validateDate(val))
-  }
-
-  /* ---------- FORM ---------- */
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     assetCode: "",
-    operatorName: "",
     assetDescription: "",
-    shiftHours: "",
-    output: "",
-    workDone: "working",
-    totalHours: "",
-    submittedBy: "",
+    operatorName: "",
+    date: "",
+    workingDetails: {
+      commenced: {
+        time: "",
+        hmrOrKmrReading: "",
+      },
+      completed: {
+        time: "",
+        hmrOrKmrReading: "",
+      },
+    },
+    productionDetails: {
+      activityCode: "",
+      quantityProduced: 0,
+      workDone: "",
+    },
+    totals: {
+      workingHours: 0,
+      idleHours: 0,
+      breakdownHours: 0,
+      productionQty: 0,
+      hmrOrKmrRun: "",
+      fuelInLiters: 0,
+    },
+    userInfo: {
+      userName: "",
+      userSignature: "",
+    },
   })
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+  const handleInputChange = (section: string, field: string, value: any, subField?: string) => {
+    setFormData((prev) => {
+      if (subField) {
+        return {
+          ...prev,
+          [section]: {
+            ...prev[section as keyof typeof prev],
+            [field]: {
+              ...(prev[section as keyof typeof prev] as any)[field],
+              [subField]: value,
+            },
+          },
+        }
+      } else {
+        return {
+          ...prev,
+          [section]: {
+            ...prev[section as keyof typeof prev],
+            [field]: value,
+          },
+        }
+      }
+    })
   }
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleDirectChange = (field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const validateDate = (selectedDate: string) => {
+    if (!selectedDate) {
+      setDateError("")
+      return true
+    }
+
+    const selected = new Date(selectedDate)
+    const today = new Date()
+    const twoDaysAgo = new Date(today)
+    twoDaysAgo.setDate(today.getDate() - 2)
+
+    // Reset time to start of day for accurate comparison
+    selected.setHours(0, 0, 0, 0)
+    twoDaysAgo.setHours(0, 0, 0, 0)
+    today.setHours(23, 59, 59, 999)
+
+    if (selected < twoDaysAgo) {
+      setDateError("Date cannot be more than 2 days ago")
+      return false
+    } else if (selected > today) {
+      setDateError("Date cannot be in the future")
+      return false
+    } else {
+      setDateError("")
+      return true
+    }
+  }
+
+  const handleDateChange = (value: string) => {
+    handleDirectChange("date", value)
+    validateDate(value)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const err = validateDate(date)
-    if (err) {
-      setDateError(err)
-      toast({
-        title: "Invalid date",
-        description: err,
-        variant: "destructive",
-      })
+
+    if (!validateDate(formData.date)) {
+      setError("Please select a valid date")
       return
     }
 
-    // TODO: send to backend – placeholder
-    toast({ title: "Logsheet submitted", description: "Your logsheet was sent successfully!" })
-    router.push("/user/dashboard")
+    setLoading(true)
+    setError("")
+    setSuccess("")
+
+    try {
+      const token = localStorage.getItem("token")
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/logsheet/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSuccess("Logsheet submitted successfully!")
+        setTimeout(() => {
+          router.push("/user/dashboard")
+        }, 2000)
+      } else {
+        setError(data.error || "Submission failed")
+      }
+    } catch (err) {
+      setError("Network error. Please try again.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
-    <main className="container mx-auto max-w-5xl pt-20 pb-24 space-y-8">
-      {/* Stand-alone DATE picker */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Date</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <Input type="date" value={date} onChange={handleDateChange} className={dateError ? "border-red-500" : ""} />
-          {dateError && <p className="text-sm text-red-600">{dateError}</p>}
-        </CardContent>
-      </Card>
+    <div className="pt-20 px-6 pb-6">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      {/* MAIN FORM */}
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* ---------- BASIC INFO ---------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Basic Information</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="assetCode">Asset Code *</Label>
-              <Input
-                id="assetCode"
-                name="assetCode"
-                placeholder="Enter asset code"
-                required
-                value={form.assetCode}
-                onChange={handleChange}
-              />
+        {success && (
+          <Alert className="border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900 dark:text-green-200">
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Small Date Field in Upper Left Corner */}
+        <div className="w-48">
+          <Label htmlFor="date" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Date
+          </Label>
+          <Input
+            id="date"
+            type="date"
+            value={formData.date}
+            onChange={(e) => handleDateChange(e.target.value)}
+            required
+            className={`mt-1 ${
+              dateError
+                ? "border-red-500 focus:border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            }`}
+          />
+          {dateError && (
+            <div className="flex items-center gap-1 text-red-600 text-xs mt-1">
+              <AlertTriangle className="h-3 w-3" />
+              <span>{dateError}</span>
             </div>
+          )}
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="operatorName">Operator Name *</Label>
-              <Input
-                id="operatorName"
-                name="operatorName"
-                placeholder="Enter operator name"
-                required
-                value={form.operatorName}
-                onChange={handleChange}
-              />
-            </div>
+        <form onSubmit={handleSubmit}>
+          <Tabs defaultValue="basic" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="basic">Basic Info</TabsTrigger>
+              <TabsTrigger value="totals">Totals & User</TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="assetDescription">Asset Description</Label>
-              <Input
-                id="assetDescription"
-                name="assetDescription"
-                placeholder="Describe the asset"
-                value={form.assetDescription}
-                onChange={handleChange}
-              />
-            </div>
+            <TabsContent value="basic">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Equipment Logsheet Information</CardTitle>
+                  <CardDescription>Enter all the equipment and operational details</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Basic Information Section */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Asset Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="assetCode">Asset Code *</Label>
+                        <Input
+                          id="assetCode"
+                          value={formData.assetCode}
+                          onChange={(e) => handleDirectChange("assetCode", e.target.value)}
+                          placeholder="Enter asset code"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="operatorName">Operator Name *</Label>
+                        <Input
+                          id="operatorName"
+                          value={formData.operatorName}
+                          onChange={(e) => handleDirectChange("operatorName", e.target.value)}
+                          placeholder="Enter operator name"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="assetDescription">Asset Description</Label>
+                      <Textarea
+                        id="assetDescription"
+                        value={formData.assetDescription}
+                        onChange={(e) => handleDirectChange("assetDescription", e.target.value)}
+                        placeholder="Describe the asset"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
 
-            {/* Work Done – select */}
-            <div className="space-y-2">
-              <Label htmlFor="workDone">Work Status *</Label>
-              <Select value={form.workDone} onValueChange={(v) => setForm((prev) => ({ ...prev, workDone: v }))}>
-                <SelectTrigger id="workDone">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="working">Working</SelectItem>
-                  <SelectItem value="idle">Idle</SelectItem>
-                  <SelectItem value="breakdown">Breakdown</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                  {/* Working Details Section */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Working Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h4 className="text-md font-medium mb-3 text-gray-700 dark:text-gray-300">Commenced</h4>
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="commencedTime">Time</Label>
+                            <Input
+                              id="commencedTime"
+                              type="time"
+                              value={formData.workingDetails.commenced.time}
+                              onChange={(e) => handleInputChange("workingDetails", "commenced", e.target.value, "time")}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="commencedReading">HMR/KMR Reading</Label>
+                            <Input
+                              id="commencedReading"
+                              value={formData.workingDetails.commenced.hmrOrKmrReading}
+                              onChange={(e) =>
+                                handleInputChange("workingDetails", "commenced", e.target.value, "hmrOrKmrReading")
+                              }
+                              placeholder="Enter reading"
+                            />
+                          </div>
+                        </div>
+                      </div>
 
-            {/* Example merged older fields (shift hours, production output) */}
-            <div className="space-y-2">
-              <Label htmlFor="shiftHours">Shift Hours</Label>
-              <Input
-                id="shiftHours"
-                name="shiftHours"
-                placeholder="e.g. 8"
-                value={form.shiftHours}
-                onChange={handleChange}
-              />
-            </div>
+                      <div>
+                        <h4 className="text-md font-medium mb-3 text-gray-700 dark:text-gray-300">Completed</h4>
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="completedTime">Time</Label>
+                            <Input
+                              id="completedTime"
+                              type="time"
+                              value={formData.workingDetails.completed.time}
+                              onChange={(e) => handleInputChange("workingDetails", "completed", e.target.value, "time")}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="completedReading">HMR/KMR Reading</Label>
+                            <Input
+                              id="completedReading"
+                              value={formData.workingDetails.completed.hmrOrKmrReading}
+                              onChange={(e) =>
+                                handleInputChange("workingDetails", "completed", e.target.value, "hmrOrKmrReading")
+                              }
+                              placeholder="Enter reading"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="output">Production Output</Label>
-              <Input id="output" name="output" placeholder="e.g. 1200" value={form.output} onChange={handleChange} />
-            </div>
-          </CardContent>
-        </Card>
+                  {/* Production Details Section */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Production Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="activityCode">Activity Code</Label>
+                        <Input
+                          id="activityCode"
+                          value={formData.productionDetails.activityCode}
+                          onChange={(e) => handleInputChange("productionDetails", "activityCode", e.target.value)}
+                          placeholder="Enter activity code"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="quantityProduced">Quantity Produced</Label>
+                        <Input
+                          id="quantityProduced"
+                          type="number"
+                          value={formData.productionDetails.quantityProduced}
+                          onChange={(e) =>
+                            handleInputChange("productionDetails", "quantityProduced", Number(e.target.value))
+                          }
+                          placeholder="Enter quantity"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="workDone">Work Status *</Label>
+                      <Select
+                        value={formData.productionDetails.workDone}
+                        onValueChange={(value) => handleInputChange("productionDetails", "workDone", value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select work status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="working">Working</SelectItem>
+                          <SelectItem value="idle">Idle</SelectItem>
+                          <SelectItem value="breakdown">Breakdown</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-        {/* ---------- TOTALS & USERS ---------- */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Totals &amp; Users</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="totalHours">Total Hours</Label>
-              <Input
-                id="totalHours"
-                name="totalHours"
-                placeholder="e.g. 10"
-                value={form.totalHours}
-                onChange={handleChange}
-              />
-            </div>
+            <TabsContent value="totals">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Totals</CardTitle>
+                    <CardDescription>Enter the total hours and quantities</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="workingHours">Working Hours</Label>
+                        <Input
+                          id="workingHours"
+                          type="number"
+                          step="0.1"
+                          value={formData.totals.workingHours}
+                          onChange={(e) => handleInputChange("totals", "workingHours", Number(e.target.value))}
+                          placeholder="0.0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="idleHours">Idle Hours</Label>
+                        <Input
+                          id="idleHours"
+                          type="number"
+                          step="0.1"
+                          value={formData.totals.idleHours}
+                          onChange={(e) => handleInputChange("totals", "idleHours", Number(e.target.value))}
+                          placeholder="0.0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="breakdownHours">Breakdown Hours</Label>
+                        <Input
+                          id="breakdownHours"
+                          type="number"
+                          step="0.1"
+                          value={formData.totals.breakdownHours}
+                          onChange={(e) => handleInputChange("totals", "breakdownHours", Number(e.target.value))}
+                          placeholder="0.0"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="productionQty">Production Quantity</Label>
+                        <Input
+                          id="productionQty"
+                          type="number"
+                          value={formData.totals.productionQty}
+                          onChange={(e) => handleInputChange("totals", "productionQty", Number(e.target.value))}
+                          placeholder="0"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="hmrOrKmrRun">HMR/KMR Run</Label>
+                        <Input
+                          id="hmrOrKmrRun"
+                          value={formData.totals.hmrOrKmrRun}
+                          onChange={(e) => handleInputChange("totals", "hmrOrKmrRun", e.target.value)}
+                          placeholder="Enter run value"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="fuelInLiters">Fuel in Liters</Label>
+                        <Input
+                          id="fuelInLiters"
+                          type="number"
+                          step="0.1"
+                          value={formData.totals.fuelInLiters}
+                          onChange={(e) => handleInputChange("totals", "fuelInLiters", Number(e.target.value))}
+                          placeholder="0.0"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="submittedBy">Submitted By (email)</Label>
-              <Input
-                id="submittedBy"
-                name="submittedBy"
-                placeholder="you@example.com"
-                value={form.submittedBy}
-                onChange={handleChange}
-              />
-            </div>
-          </CardContent>
-        </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>User Information</CardTitle>
+                    <CardDescription>Enter your details and signature</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="userName">User Name *</Label>
+                        <Input
+                          id="userName"
+                          value={formData.userInfo.userName}
+                          onChange={(e) => handleInputChange("userInfo", "userName", e.target.value)}
+                          placeholder="Enter your name"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="userSignature">Digital Signature</Label>
+                        <Input
+                          id="userSignature"
+                          value={formData.userInfo.userSignature}
+                          onChange={(e) => handleInputChange("userInfo", "userSignature", e.target.value)}
+                          placeholder="Enter your signature"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        <Button type="submit" disabled={!!dateError}>
-          Submit Logsheet
-        </Button>
-      </form>
-    </main>
+                <div className="flex justify-end gap-4">
+                  <Button type="button" variant="outline" onClick={() => router.push("/user/dashboard")}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={loading || !!dateError}>
+                    {loading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Submit Logsheet
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </form>
+      </div>
+    </div>
   )
 }
