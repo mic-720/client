@@ -11,13 +11,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Send } from "lucide-react"
+import { Send, AlertTriangle } from "lucide-react"
 
 export default function SubmitLogsheet() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [dateError, setDateError] = useState("")
 
   const [formData, setFormData] = useState({
     assetCode: "",
@@ -85,8 +86,47 @@ export default function SubmitLogsheet() {
     }))
   }
 
+  const validateDate = (selectedDate: string) => {
+    if (!selectedDate) {
+      setDateError("")
+      return true
+    }
+
+    const selected = new Date(selectedDate)
+    const today = new Date()
+    const twoDaysAgo = new Date(today)
+    twoDaysAgo.setDate(today.getDate() - 2)
+
+    // Reset time to start of day for accurate comparison
+    selected.setHours(0, 0, 0, 0)
+    twoDaysAgo.setHours(0, 0, 0, 0)
+    today.setHours(23, 59, 59, 999)
+
+    if (selected < twoDaysAgo) {
+      setDateError("Date cannot be more than 2 days ago")
+      return false
+    } else if (selected > today) {
+      setDateError("Date cannot be in the future")
+      return false
+    } else {
+      setDateError("")
+      return true
+    }
+  }
+
+  const handleDateChange = (value: string) => {
+    handleDirectChange("date", value)
+    validateDate(value)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!validateDate(formData.date)) {
+      setError("Please select a valid date")
+      return
+    }
+
     setLoading(true)
     setError("")
     setSuccess("")
@@ -122,11 +162,6 @@ export default function SubmitLogsheet() {
   return (
     <div className="pt-20 px-6 pb-6">
       <div className="max-w-4xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Submit Logsheet</h1>
-          <p className="text-gray-600 dark:text-gray-400">Fill in the equipment logsheet details</p>
-        </div>
-
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
@@ -141,167 +176,149 @@ export default function SubmitLogsheet() {
 
         <form onSubmit={handleSubmit}>
           <Tabs defaultValue="basic" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="basic">Basic Info</TabsTrigger>
-              <TabsTrigger value="working">Working Details</TabsTrigger>
-              <TabsTrigger value="production">Production</TabsTrigger>
               <TabsTrigger value="totals">Totals & User</TabsTrigger>
             </TabsList>
 
             <TabsContent value="basic">
               <Card>
                 <CardHeader>
-                  <CardTitle>Basic Information</CardTitle>
-                  <CardDescription>Enter the basic asset and operator details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="assetCode">Asset Code *</Label>
-                      <Input
-                        id="assetCode"
-                        value={formData.assetCode}
-                        onChange={(e) => handleDirectChange("assetCode", e.target.value)}
-                        placeholder="Enter asset code"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="operatorName">Operator Name *</Label>
-                      <Input
-                        id="operatorName"
-                        value={formData.operatorName}
-                        onChange={(e) => handleDirectChange("operatorName", e.target.value)}
-                        placeholder="Enter operator name"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="assetDescription">Asset Description</Label>
-                    <Textarea
-                      id="assetDescription"
-                      value={formData.assetDescription}
-                      onChange={(e) => handleDirectChange("assetDescription", e.target.value)}
-                      placeholder="Describe the asset"
-                      rows={3}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Date *</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => handleDirectChange("date", e.target.value)}
-                      required
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="working">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Working Details</CardTitle>
-                  <CardDescription>Enter the working time and readings</CardDescription>
+                  <CardTitle>Equipment Logsheet Information</CardTitle>
+                  <CardDescription>Enter all the equipment and operational details</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  {/* Basic Information Section */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">Commenced</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Asset Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="space-y-2">
-                        <Label htmlFor="commencedTime">Commenced Time</Label>
+                        <Label htmlFor="assetCode">Asset Code *</Label>
                         <Input
-                          id="commencedTime"
-                          type="time"
-                          value={formData.workingDetails.commenced.time}
-                          onChange={(e) => handleInputChange("workingDetails", "commenced", e.target.value, "time")}
+                          id="assetCode"
+                          value={formData.assetCode}
+                          onChange={(e) => handleDirectChange("assetCode", e.target.value)}
+                          placeholder="Enter asset code"
+                          required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="commencedReading">HMR/KMR Reading</Label>
+                        <Label htmlFor="operatorName">Operator Name *</Label>
                         <Input
-                          id="commencedReading"
-                          value={formData.workingDetails.commenced.hmrOrKmrReading}
-                          onChange={(e) =>
-                            handleInputChange("workingDetails", "commenced", e.target.value, "hmrOrKmrReading")
-                          }
-                          placeholder="Enter reading"
+                          id="operatorName"
+                          value={formData.operatorName}
+                          onChange={(e) => handleDirectChange("operatorName", e.target.value)}
+                          placeholder="Enter operator name"
+                          required
                         />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="assetDescription">Asset Description</Label>
+                      <Textarea
+                        id="assetDescription"
+                        value={formData.assetDescription}
+                        onChange={(e) => handleDirectChange("assetDescription", e.target.value)}
+                        placeholder="Describe the asset"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Working Details Section */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Working Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h4 className="text-md font-medium mb-3 text-gray-700 dark:text-gray-300">Commenced</h4>
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="commencedTime">Time</Label>
+                            <Input
+                              id="commencedTime"
+                              type="time"
+                              value={formData.workingDetails.commenced.time}
+                              onChange={(e) => handleInputChange("workingDetails", "commenced", e.target.value, "time")}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="commencedReading">HMR/KMR Reading</Label>
+                            <Input
+                              id="commencedReading"
+                              value={formData.workingDetails.commenced.hmrOrKmrReading}
+                              onChange={(e) =>
+                                handleInputChange("workingDetails", "commenced", e.target.value, "hmrOrKmrReading")
+                              }
+                              placeholder="Enter reading"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="text-md font-medium mb-3 text-gray-700 dark:text-gray-300">Completed</h4>
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <Label htmlFor="completedTime">Time</Label>
+                            <Input
+                              id="completedTime"
+                              type="time"
+                              value={formData.workingDetails.completed.time}
+                              onChange={(e) => handleInputChange("workingDetails", "completed", e.target.value, "time")}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="completedReading">HMR/KMR Reading</Label>
+                            <Input
+                              id="completedReading"
+                              value={formData.workingDetails.completed.hmrOrKmrReading}
+                              onChange={(e) =>
+                                handleInputChange("workingDetails", "completed", e.target.value, "hmrOrKmrReading")
+                              }
+                              placeholder="Enter reading"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
+                  {/* Production Details Section */}
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">Completed</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Production Details</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="space-y-2">
-                        <Label htmlFor="completedTime">Completed Time</Label>
+                        <Label htmlFor="activityCode">Activity Code</Label>
                         <Input
-                          id="completedTime"
-                          type="time"
-                          value={formData.workingDetails.completed.time}
-                          onChange={(e) => handleInputChange("workingDetails", "completed", e.target.value, "time")}
+                          id="activityCode"
+                          value={formData.productionDetails.activityCode}
+                          onChange={(e) => handleInputChange("productionDetails", "activityCode", e.target.value)}
+                          placeholder="Enter activity code"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="completedReading">HMR/KMR Reading</Label>
+                        <Label htmlFor="quantityProduced">Quantity Produced</Label>
                         <Input
-                          id="completedReading"
-                          value={formData.workingDetails.completed.hmrOrKmrReading}
+                          id="quantityProduced"
+                          type="number"
+                          value={formData.productionDetails.quantityProduced}
                           onChange={(e) =>
-                            handleInputChange("workingDetails", "completed", e.target.value, "hmrOrKmrReading")
+                            handleInputChange("productionDetails", "quantityProduced", Number(e.target.value))
                           }
-                          placeholder="Enter reading"
+                          placeholder="Enter quantity"
                         />
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="production">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Production Details</CardTitle>
-                  <CardDescription>Enter production and activity information</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="activityCode">Activity Code</Label>
-                      <Input
-                        id="activityCode"
-                        value={formData.productionDetails.activityCode}
-                        onChange={(e) => handleInputChange("productionDetails", "activityCode", e.target.value)}
-                        placeholder="Enter activity code"
+                      <Label htmlFor="workDone">Work Done</Label>
+                      <Textarea
+                        id="workDone"
+                        value={formData.productionDetails.workDone}
+                        onChange={(e) => handleInputChange("productionDetails", "workDone", e.target.value)}
+                        placeholder="Describe the work done"
+                        rows={4}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="quantityProduced">Quantity Produced</Label>
-                      <Input
-                        id="quantityProduced"
-                        type="number"
-                        value={formData.productionDetails.quantityProduced}
-                        onChange={(e) =>
-                          handleInputChange("productionDetails", "quantityProduced", Number(e.target.value))
-                        }
-                        placeholder="Enter quantity"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="workDone">Work Done</Label>
-                    <Textarea
-                      id="workDone"
-                      value={formData.productionDetails.workDone}
-                      onChange={(e) => handleInputChange("productionDetails", "workDone", e.target.value)}
-                      placeholder="Describe the work done"
-                      rows={4}
-                    />
                   </div>
                 </CardContent>
               </Card>
@@ -309,6 +326,29 @@ export default function SubmitLogsheet() {
 
             <TabsContent value="totals">
               <div className="space-y-6">
+                {/* Date Field */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Date *</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => handleDateChange(e.target.value)}
+                        required
+                        className={dateError ? "border-red-500" : ""}
+                      />
+                      {dateError && (
+                        <div className="flex items-center gap-2 text-red-600 text-sm">
+                          <AlertTriangle className="h-4 w-4" />
+                          <span>{dateError}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Totals</CardTitle>
@@ -419,7 +459,7 @@ export default function SubmitLogsheet() {
                   <Button type="button" variant="outline" onClick={() => router.push("/user/dashboard")}>
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading || !!dateError}>
                     {loading ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
